@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+
+import rclpy
+from rclpy.node import Node
+from rclpy.action import ActionClient
+from robco_interfaces.action import LifterControl
+from std_msgs.msg import UInt8
+
+class TopicClient(Node):
+    def __init__(self):
+        super().__init__('topic_client')
+        self.action_client = ActionClient(self, LifterControl, 'lifter_control')
+
+        self.subscription = self.create_subscription(UInt8, '/robco_lifter', self.callback, 10)
+
+    def callback(self, msg):
+        self.get_logger().info('Message with value ' + str(msg.data) + " received on topic /robco_lifter...")
+        if 1 <= msg.data <= 4:
+            self.send_goal(msg.data)
+
+    def send_goal(self, action_type):
+        goal_msg = LifterControl.Goal()
+        goal_msg.action_type = action_type
+        self.get_logger().info('Before sending goal message...')
+        # print('Before sending goal message...')
+        self.send_goal_future = self.action_client.send_goal_async(goal_msg)
+        self.get_logger().info('Before sending goal message...')
+        # print('After sending goal message...')
+        self.send_goal_future.add_done_callback(self.goal_response_callback)
+
+    def goal_response_callback(self, future):
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.get_logger().info('Goal rejected')
+            # print('Goal rejected')
+            return
+        self.get_logger().info('Goal accepted')
+        # print('Goal accepted')
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = TopicClient()
+    
+    rclpy.spin(node)
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+
+# import rclpy
+# from rclpy.action import ActionClient
+# from robco_interfaces.action import LifterControl
+# from std_msgs.msg import UInt8
+
+# class TopicClient:
+#     def __init__(self):
+#         self.node = rclpy.create_node('topic_client')
+#         self.action_client = ActionClient(self.node, LifterControl, 'lifter_control')
+
+#         self.subscription = self.node.create_subscription(UInt8, '/robco_lifter', self.callback, 10)
+
+#     def callback(self, msg):
+#         self.get_logger().info('Message recived on topic /robco_lifter...')
+#         if 1 <= msg.data <= 3:
+#             self.send_goal(msg.data)
+
+#     def send_goal(self, action_type):
+#         goal_msg = LifterControl.Goal()
+#         goal_msg.action_type = action_type
+#         # self.get_logger().info('Before sending goal message...')
+#         print('Before sending goal message...')
+#         self.send_goal_future = self.action_client.send_goal_async(goal_msg)
+#         # self.get_logger().info('After sending goal message...')
+#         print('After sending goal message...')
+#         self.send_goal_future.add_done_callback(self.goal_response_callback)
+
+#     def goal_response_callback(self, future):
+#         goal_handle = future.result()
+#         if not goal_handle.accepted:
+#             print('Goal rejected')
+#             return
+#         print('Goal accepted')
+
+# def main(args=None):
+#     rclpy.init(args=args)
+#     node = TopicClient()
+    
+#     rclpy.spin(node.node)
+#     rclpy.shutdown()
+
+# if __name__ == '__main__':
+#     main()
+
+
+
+
+##################################################################################################
+# import rclpy
+# from rclpy.node import Node
+# from robco_interfaces.action import LifterControl
+# from std_msgs.msg import UInt8
+
+# class TopicClient(Node):  # Updated class name to TopicClient
+#     def __init__(self):
+#         super().__init__('topic_client')
+#         self.action_client = self.create_client(LifterControl, 'lifter_control')
+#         self.subscription = self.create_subscription(
+#             UInt8,
+#             '/robco_lifter',
+#             self.topic_callback,
+#             10
+#         )
+
+#     async def send_goal(self, action_type):
+#         while not self.action_client.wait_for_service(timeout_sec=1.0):
+#             self.get_logger().info('Service not available, waiting again...')
+#         goal_msg = LifterControl.Goal()
+#         goal_msg.action_type = action_type
+#         self.send_goal_future = self.action_client.send_goal_async(goal_msg)
+#         self.send_goal_future.add_done_callback(self.goal_response_callback)
+
+#     def goal_response_callback(self, future):
+#         goal_handle = future.result()
+#         if not goal_handle.accepted:
+#             self.get_logger().info('Goal was rejected')
+#             return
+#         self.get_logger().info('Goal accepted')
+
+#     def topic_callback(self, msg):
+#         action_type = msg.data
+#         if action_type in [1, 2, 3]:
+#             self.get_logger().info(f'Received value: {action_type}, sending goal request...')
+#             self.send_goal(action_type)
+#         else:
+#             self.get_logger().info(f'Invalid value received: {action_type}')
+
+# def main(args=None):
+#     rclpy.init(args=args)
+#     node = TopicClient()
+#     rclpy.spin(node)
+#     rclpy.shutdown()
+
+# if __name__ == '__main__':
+#     main()
